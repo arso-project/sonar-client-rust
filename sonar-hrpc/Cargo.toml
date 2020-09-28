@@ -1,0 +1,24 @@
+[package]
+name = "sonar-hrpc"
+version = "0.1.0"
+authors = ["Franz Heinzmann (Frando) <frando@unbiskant.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hrpc = { path = "../../hrpc" }
+# prost = { path = "../../prost" }
+# Needed until https://github.com/danburkert/prost/pull/317 is merged.
+prost = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
+async-trait = "0.1.36"
+serde = { version = "1.0", optional = true, features = ["derive"]}
+bytes = "0.5.6"
+serde_json = { version = "1.0", features = ["raw_value"] }
+hex = "0.4.2"
+
+[build-dependencies]
+hrpc-build = { path = "../../hrpc/hrpc-build" }
+
+[features]
+default = ["serde"]

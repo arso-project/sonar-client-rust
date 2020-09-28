@@ -1,0 +1,31 @@
+[package]
+name = "sonar-client-rust"
+version = "0.1.0"
+authors = ["Franz Heinzmann (Frando) <frando@unbiskant.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+surf = "2.0.0-alpha.4"
+async-std = { version = "1.6.2", features = ["attributes"] }
+anyhow = "1.0.32"
+http-types = "2.5.0"
+serde = { version = "1.0.116", features = ["derive"] }
+serde_json = { version = "1.0.57", features = ["raw_value"] }
+sonar-hrpc = { path = "sonar-hrpc" }
+futures = "0.3.5"
+surf-sse = { git = "https://github.com/goto-bus-stop/surf-sse", branch = "default" }
+env_logger = "0.7.1"
+log = "0.4.11"
+eyre = "0.6.0"
+thiserror = "1.0.20"
+
+[workspace]
+members = ["sonar-hrpc"]
+
+# Needed until https://github.com/danburkert/prost/pull/317 is merged.
+[patch.crates-io]
+prost = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
+prost-types = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
+prost-build = { git = "https://github.com/Frando/prost", branch = "unknown_fields" }
