@@ -24,10 +24,10 @@ async fn main() -> Result<()> {
     let mut tasks = vec![];
     let task = task::spawn_local(log_events(collection.clone()));
     tasks.push(task);
-    let task = task::spawn_local(log_subscription(collection, name));
+    let task = task::spawn_local(log_subscription(collection.clone(), name));
     tasks.push(task);
-    // let task = task::spawn_local(log_query(collection));
-    // tasks.push(task);
+    let task = task::spawn_local(log_query(collection));
+    tasks.push(task);
 
     let res = future::join_all(tasks).await;
     eprintln!("res {:?}", res);
@@ -52,6 +52,7 @@ async fn log_query(collection: Collection) -> Result<()> {
     let args = serde_json::json!("hei");
     let query = "search";
     let res = collection.query(query, args).await.unwrap();
+    eprintln!("{} results", res.len());
     for record in res {
         log_record(record)?;
     }

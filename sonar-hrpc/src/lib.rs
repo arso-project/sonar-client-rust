@@ -1,5 +1,5 @@
 use ::bytes::{Buf, BufMut};
-use hex::{FromHex, ToHex};
+use hex::FromHex;
 use serde_json::value::RawValue;
 
 use prost::{
@@ -7,14 +7,17 @@ use prost::{
     DecodeError, Message,
 };
 
-use serde::de::{Deserialize, Deserializer, IntoDeserializer, Visitor};
-use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde::de::{Deserialize, Deserializer};
+use serde::ser::{Serialize, Serializer};
 
+/// Generated schema and rpc structs.
 pub mod schema {
     include!(concat!(env!("OUT_DIR"), "/sonar.rs"));
 }
 
 /// Serializes `buffer` to a lowercase hex string.
+///
+/// Is used as a custom serializer on bytes fields, via build.rs.
 pub fn as_hex<S>(buffer: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -26,7 +29,7 @@ where
     }
 }
 
-/// Deserializes a lowercase hex string to a `Vec<u8>`.
+/// Deserializes a JSON number into a u32.
 fn u32_from_integer<'de, D>(deserializer: D) -> Result<Option<u32>, D::Error>
 where
     D: Deserializer<'de>,
@@ -57,13 +60,8 @@ where
     })
 }
 
-// fn err(msg: impl ToString) {
-//     serde::de::Error::custom(msg.to_string())
-// }
-// fn map_err(err: impl std::error::Error) -> serde::de::Error {
-//     serde::de::Error::custom(err.to_string())
-// }
-
+// A custom JSON deserializer for Link structs that parses
+// a "key@seq" string into a Link { key: bytes, seq: u32 } struct.
 impl<'de> Deserialize<'de> for schema::Link {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -71,9 +69,6 @@ impl<'de> Deserialize<'de> for schema::Link {
     {
         let string = String::deserialize(deserializer)?;
         let mut parts = string.split("@");
-        // if parts.len() != 2 {
-        //     return Err(serde::de::Error::custom("Invalid link"));
-        // }
         let key = parts
             .next()
             .ok_or(serde::de::Error::custom("Missing key in link"))?;
@@ -131,11 +126,6 @@ impl Serialize for Json {
     }
 }
 
-// fn deserialize<'de, D,T>(deserializer: D) -> Result<T,D::Error>
-// where D: Deserializer<'de>, T: Deserialize) {
-//     T::deserialize(deserializer)
-// }
-
 impl<'de> Deserialize<'de> for Json {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -152,29 +142,6 @@ impl<'de> Deserialize<'de> for Json {
         Ok(this)
     }
 }
-
-// impl<'de: 'a, 'a> Deserialize<'de> for &'a Json {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         let raw_value = RawValue::deserialize(deserializer)?;
-//         let this = Json {
-//             raw_value: Box::new(raw_value),
-//             ..Default::default()
-//         };
-//         Ok(&this)
-//     }
-// }
-
-// impl Default for Json {
-//     fn default() -> Self {
-//         Self {
-//             buf: Vec::new(),
-//             raw_value: Box::new(Raw
-//         }
-//     }
-// }
 
 impl Message for Json {
     fn encode_raw<B>(&self, buf: &mut B)
@@ -220,3 +187,37 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
+
+// fn err(msg: impl ToString) {
+//     serde::de::Error::custom(msg.to_string())
+// }
+// fn map_err(err: impl std::error::Error) -> serde::de::Error {
+//     serde::de::Error::custom(err.to_string())
+// }
+// impl<'de: 'a, 'a> Deserialize<'de> for &'a Json {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         let raw_value = RawValue::deserialize(deserializer)?;
+//         let this = Json {
+//             raw_value: Box::new(raw_value),
+//             ..Default::default()
+//         };
+//         Ok(&this)
+//     }
+// }
+
+// impl Default for Json {
+//     fn default() -> Self {
+//         Self {
+//             buf: Vec::new(),
+//             raw_value: Box::new(Raw
+//         }
+//     }
+// }
+
+// fn deserialize<'de, D,T>(deserializer: D) -> Result<T,D::Error>
+// where D: Deserializer<'de>, T: Deserialize) {
+//     T::deserialize(deserializer)
+// }
