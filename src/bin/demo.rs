@@ -1,16 +1,13 @@
+#[allow(dead_code)]
 // use anyhow::Result;
 use async_std::task;
 use eyre::Result;
-use futures::channel::{mpsc, oneshot};
-use futures::future::FutureExt;
-use futures::stream::{Stream, StreamExt, TryStreamExt};
+use futures::future;
+use futures::stream::StreamExt;
 use log::*;
 use serde_json::Value;
 use sonar_client_rust::schema;
 use sonar_client_rust::{Client, Collection};
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use thiserror::Error;
 
 #[async_std::main]
@@ -19,16 +16,21 @@ async fn main() -> Result<()> {
     let name = std::env::args().nth(1).expect("pass subscription name arg");
 
     let client = Client::default();
-    let collection = Collection::new(client, "default");
+    let collection = client.collection("default");
 
     // Subscribe to the event stream and log all events.
     // TODO: surf_sse::EventSource is not Send, so we have to use
     // spawn_local.
-    // let log_events = task::spawn_local(log_events(collection.clone()));
-    let log_subscription = task::spawn_local(log_subscription(collection, name));
+    let mut tasks = vec![];
+    let task = task::spawn_local(log_events(collection.clone()));
+    tasks.push(task);
+    let task = task::spawn_local(log_subscription(collection, name));
+    tasks.push(task);
+    // let task = task::spawn_local(log_query(collection));
+    // tasks.push(task);
 
-    // log_events.await?;
-    log_subscription.await?;
+    let res = future::join_all(tasks).await;
+    eprintln!("res {:?}", res);
 
     Ok(())
 }
@@ -37,9 +39,21 @@ async fn log_subscription(collection: Collection, name: impl ToString) -> Result
     // Subscribe to the collection under a name.
     let mut subscription = collection.subscribe(name.to_string());
     while let Some(batch) = subscription.next().await {
-        info!("got batch: {:?}", batch);
+        // info!("got batch: {:?}", batch);
         let batch = batch.unwrap();
-        on_batch(batch).unwrap();
+        for record in batch.messages {
+            log_record(record)?;
+        }
+    }
+    Ok(())
+}
+
+async fn log_query(collection: Collection) -> Result<()> {
+    let args = serde_json::json!("hei");
+    let query = "search";
+    let res = collection.query(query, args).await.unwrap();
+    for record in res {
+        log_record(record)?;
     }
     Ok(())
 }
@@ -47,15 +61,9 @@ async fn log_subscription(collection: Collection, name: impl ToString) -> Result
 async fn log_events(collection: Collection) -> Result<()> {
     // TODO: Handle error.
     let mut events = collection.events().unwrap();
+    eprintln!("now log events");
     while let Some(event) = events.next().await {
-        info!("[{}] Event {:?}", collection.name(), event);
-    }
-    Ok(())
-}
-
-fn on_batch(batch: schema::PullResponse) -> Result<()> {
-    for record in batch.messages {
-        parse_value(record)?;
+        eprintln!("[{}] Event {:?}", collection.name(), event);
     }
     Ok(())
 }
@@ -66,7 +74,7 @@ enum ParseError {
     NotAnObject,
 }
 
-fn parse_value(record: schema::Record) -> std::result::Result<(), ParseError> {
+fn log_record(record: schema::Record) -> std::result::Result<(), ParseError> {
     let typ = record.r#type;
     let value: Value = serde_json::from_str(record.value.unwrap().get()).unwrap();
     let value = if let Value::Object(value) = value {
@@ -75,7 +83,12 @@ fn parse_value(record: schema::Record) -> std::result::Result<(), ParseError> {
         Err(ParseError::NotAnObject)
     }?;
 
-    eprintln!("\n lseq: {} id: {}", record.lseq.unwrap(), record.id);
+    eprintln!(
+        "\n lseq: {} id: {} type: {}",
+        record.lseq.unwrap(),
+        record.id,
+        typ
+    );
     for (name, value) in value.iter() {
         let field_address = format!("{}#{}", typ, name);
         eprintln!("   {}: {:?}", field_address, value);

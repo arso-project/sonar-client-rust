@@ -5,6 +5,7 @@ fn main() {
     // config.type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]");
     serde(&mut config, "Record");
     serde(&mut config, "PullResponse");
+    serde(&mut config, "QueryResponse");
     config.type_attribute(".sonar.Link", "#[derive(serde::Serialize)]");
     // config.type_attribute(
     //     ".sonar.Record",
