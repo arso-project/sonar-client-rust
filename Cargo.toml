@@ -7,18 +7,18 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-surf = "2.0.0-alpha.6"
-async-std = { version = "1.6.2", features = ["attributes"] }
-http-types = "2.5.0"
-serde = { version = "1.0.116", features = ["derive"] }
-serde_json = { version = "1.0.57", features = ["raw_value"] }
+surf = "2.1.0"
+async-std = { version = "1.8.0", features = ["attributes"] }
+http-types = "2.9.0"
+serde = { version = "1.0.118", features = ["derive"] }
+serde_json = { version = "1.0.60", features = ["raw_value"] }
 sonar-hrpc = { path = "sonar-hrpc" }
-futures = "0.3.5"
-surf-sse = { git = "https://github.com/Frando/surf-sse", branch = "dev" }
-env_logger = "0.7.1"
+futures = "0.3.8"
+surf-sse = "1.0.0"
+env_logger = "0.8.2"
 log = "0.4.11"
-eyre = "0.6.0"
-thiserror = "1.0.20"
+eyre = "0.6.3"
+thiserror = "1.0.22"
 
 [workspace]
 members = ["sonar-hrpc"]
